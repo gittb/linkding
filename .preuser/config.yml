@@ -1,0 +1,39 @@
+# Linkding — drafted by the /preuser:setup plugin (single source of truth), human-reviewed.
+# bringup: compose-pull (docker-compose.yml pulls sissbruecker/linkding:latest) → no source break-it.
+#
+# DEPLOY-TIME-SEEDED LOGIN via DUAL-USE `up.env` (preuser F-1, built 2026-06-17): linkding has NO
+# public registration — it mints its admin at boot from LD_SUPERUSER_NAME / LD_SUPERUSER_PASSWORD.
+# `up.env` declares those ONCE and serves both halves:
+#   1. BOOT — the values are injected into the app's pod env; the fork compose interpolates them into
+#      the linkding container (`environment: LD_SUPERUSER_NAME=${LD_SUPERUSER_NAME}` …) so the admin
+#      is seeded. (FORK REQUIREMENT: gittb/linkding's compose must read these from `environment:`
+#      ${VAR} interpolation, NOT a committed `.env` — `env_file` ignores the injected pod env.)
+#   2. TYPING — the agent enters `<preuser-secret:LD_SUPERUSER_NAME>` /
+#      `<preuser-secret:LD_SUPERUSER_PASSWORD>` at the login form; the actuator substitutes the value
+#      at the browser, the model never sees it.
+# These are DISPOSABLE throwaway creds on a torn-down per-run instance → `up.env` (plain/visible), NOT
+# `sealed:`. This replaces the retired `secrets:` list + the removed `preuser-app-creds` operator
+# store (sealed-only as of preuser #143; up.env for deploy-time-seeded logins as of the F-1 build).
+up:
+  url: http://localhost:9090
+  health: /health
+  ready_timeout_s: 300
+  env:
+    LD_SUPERUSER_NAME: preuser-admin
+    LD_SUPERUSER_PASSWORD: ci-throwaway-pw
+journeys:
+  - name: log-in-and-reach-bookmarks
+    goal: A first-time operator signs in with the seeded admin username and password and reaches their bookmarks workspace.
+    success: The bookmarks page is shown with the "Search for words or #tags" search box and the navigation bar (Bookmarks, Tags, Settings), instead of the Login form.
+  - name: add-a-bookmark
+    goal: After signing in, the operator saves a new bookmark for a website URL with a title.
+    success: The newly added bookmark appears as an entry in the bookmarks list on the main bookmarks page.
+  - name: tag-a-bookmark
+    goal: After signing in, the operator saves a new bookmark and gives it a tag.
+    success: The saved bookmark appears in the bookmarks list showing its "#"-prefixed tag label on the entry.
+  - name: search-bookmarks
+    goal: After signing in and saving at least one bookmark, the operator searches for it by a word from its title.
+    success: The bookmarks list shows the matching bookmark and the search box contains the entered query.
+  - name: open-tags-page
+    goal: After signing in, the operator opens the Tags page to manage tags.
+    success: The Tags page is shown with the "Tags" heading and a "Search tags..." box.
